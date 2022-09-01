@@ -1,0 +1,53 @@
+import 'package:flame/components.dart';
+import 'package:flame/input.dart';
+import 'package:flame_audio/audio_pool.dart';
+import 'package:flame_audio/flame_audio.dart';
+import 'package:flame_forge2d/flame_forge2d.dart';
+
+class Player extends BodyComponent with Tappable {
+  late AudioPool launchSfx;
+  late AudioPool flyingSfx;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+
+    renderBody = false;
+    add(
+      SpriteComponent()
+        ..sprite = await gameRef.loadSprite('cake.png')
+        ..size = Vector2.all(4)
+        ..anchor = Anchor.center,
+    );
+    FlameAudio.bgm.initialize();
+    FlameAudio.bgm.play('intro.mp3', volume: 0.5);
+    Future.delayed(const Duration(seconds: 10), FlameAudio.bgm.stop);
+  }
+
+  @override
+  Body createBody() {
+    final Shape shape = CircleShape()..radius = 3;
+    final BodyDef bodyDef = BodyDef(
+      userData: this,
+      position: Vector2(10, 5),
+      type: BodyType.dynamic,
+    );
+    final FixtureDef fixtureDef = FixtureDef(shape, friction: 0.3);
+    return world.createBody(bodyDef)..createFixture(fixtureDef);
+  }
+
+  @override
+    onTapDown(TapDownInfo info)  async {
+    launchSfx = await AudioPool.create('audio/sfx/launch.mp3', maxPlayers: 1);
+    flyingSfx =  await AudioPool.create('audio/sfx/flying.mp3', maxPlayers: 1);
+    launchSfx.start(volume: 0.8);
+    FlameAudio.bgm.stop();
+    Future.delayed(
+      const Duration(milliseconds: 500),
+          () => flyingSfx.start(volume: 0.8),
+    );
+    body.applyLinearImpulse(Vector2(20, -10) * 1000);
+    return false;
+  }
+}
